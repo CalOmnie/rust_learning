@@ -32,18 +32,8 @@ fn fibonacci(n: u32) -> u32 {
 
 fn christmas_carrol() {
     let days = [
-        "first",
-        "second",
-        "third",
-        "fourth",
-        "fifth",
-        "sixth",
-        "seventh",
-        "eighth",
-        "ninth",
-        "tenth",
-        "eleventh",
-        "twelfth"
+        "first", "second", "third", "fourth", "fifth", "sixth", "seventh", "eighth", "ninth",
+        "tenth", "eleventh", "twelfth",
     ];
 
     let gifts = [
@@ -58,16 +48,18 @@ fn christmas_carrol() {
         "nine ladies dancing",
         "ten lords a-leaping",
         "eleven pipers piping",
-        "twelve drummers drumming"
+        "twelve drummers drumming",
     ];
 
     for i in 0..12 {
-        println!("On the {} day of Christmas my true love gave to me", days[i]);
-        for j in (0..i+1).rev() {
+        println!(
+            "On the {} day of Christmas my true love gave to me",
+            days[i]
+        );
+        for j in (0..i + 1).rev() {
             if i > 0 && j == 0 {
                 println!("And {}.", gifts[j]);
-            }
-            else{
+            } else {
                 println!("{},", gifts[j]);
             }
         }
