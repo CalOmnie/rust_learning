@@ -16,6 +16,27 @@ fn walk(d: &str) -> i32 {
     res
 }
 
+use std::fs;
+
+#[pyfunction]
+fn read_dir(d: &str) -> io::Result<(String, Vec<String>, Vec<String>)> {
+    let mut dirs = Vec::<String>::new();
+    let mut files = Vec::<String>::new();
+    let root = String::from(d);
+
+    for entry in fs::read_dir(d)? {
+        let entry = entry?;
+        let path = entry.path();
+        let file_name = entry.file_name().into_string().expect("Oops");
+        if path.is_dir() {
+            dirs.push(file_name)
+        } else {
+            files.push(file_name)
+        }
+    }
+    Ok((root, dirs, files))
+}
+
 #[pyclass]
 struct PyClassIter {
     count: usize,
@@ -42,17 +63,19 @@ impl PyClassIter {
     }
 }
 
+use std::iter::FilterMap;
 
 #[pyclass]
-struct Iter {
-    inner: <WalkDir as IntoIterator>::IntoIter,
+struct MyIter {
+    inner: <WalkDir as IntoIterator>::IntoIter
 }
 
+
 #[pymethods]
-impl Iter {
+impl MyIter {
     #[new]
-    fn new(d: String) -> Iter {
-        Iter {
+    fn new(d: String) -> MyIter {
+        MyIter {
             inner: WalkDir::new(d).into_iter()
         }
     }
@@ -62,11 +85,12 @@ impl Iter {
     }
 
     fn __next__(mut slf: PyRefMut<'_, Self>) -> Option<String> {
-        let res = slf.inner.next();
-        match res {
-            Some(Ok(a)) => a.into_path().into_os_string().into_string().ok(),
-            Some(Err(a)) => Some(String::from("permission denied")),
-            None => None
+        loop {
+            match slf.inner.next() {
+                Some(Ok(a)) => return a.into_path().into_os_string().into_string().ok(),
+                Some(Err(_)) => (),
+                None => return None
+            }
         }
     }
 }
@@ -86,13 +110,14 @@ impl Iter {
 //     }
 // }
 
-/// A Python module implemented in Rust. The name of this function must match
-/// the `lib.name` setting in the `Cargo.toml`, else Python will not be able to
-/// import the module.
+// A Python module implemented in Rust. The name of this function must match
+// the `lib.name` setting in the `Cargo.toml`, else Python will not be able to
+
 #[pymodule]
 fn hello_cargo(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(walk, m)?)?;
+    m.add_function(wrap_pyfunction!(read_dir, m)?)?;
     m.add_class::<PyClassIter>()?;
-    m.add_class::<Iter>()?;
+    m.add_class::<MyIter>()?;
     Ok(())
 }
