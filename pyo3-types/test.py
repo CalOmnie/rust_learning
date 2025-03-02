@@ -15,9 +15,9 @@ path = "/home/louis"
 start = time.time()
 res = 0
 
-for f in get_all_files(pyo3.DirReader(path)):
-    res += 1
-print("Took", time.time() - start, res)
+# for f in get_all_files(pyo3.DirReader(path)):
+#     res += 1
+# print("Took", time.time() - start, res)
 
 
 start = time.time()
@@ -29,11 +29,11 @@ print(f"took {end - start}", res)
 
 
 
-test = pyo3.DirReader(path)
-print(next(test))
+# test = pyo3.DirReader(path)
+# print(next(test))
 
-test2 = os.walk(path)
-print(next(test2))
+# test2 = os.walk(path)
+# print(next(test2))
 
 # res = os.walk("/")
 # print(next(res))
