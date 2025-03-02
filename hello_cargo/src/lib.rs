@@ -5,6 +5,70 @@ use walkdir::WalkDir;
 use walkdir::DirEntry;
 use walkdir::Result;
 use std::sync::Mutex;
+use std::fs;
+use std::path::PathBuf;
+
+struct DirReader {
+    stack: Vec<PathBuf>
+}
+
+impl DirReader {
+    fn new(d: String) -> DirReader {
+        DirReader {
+            stack: vec!(d.into())
+        }
+    }
+}
+
+impl Iterator for DirReader {
+    type Item = (String, Vec<String>, Vec<String>);
+
+    fn next(&mut self) -> Option<Self::Item> {
+        let target = self.stack.pop()?;
+        let dir_reader = fs::read_dir(&target).ok()?;
+        let capacity = dir_reader.size_hint().0;
+        let mut dirs = Vec::<String>::with_capacity(capacity);
+        let mut files = Vec::<String>::with_capacity(capacity);
+
+        for entry in dir_reader {
+            let entry = entry.ok()?;
+            let path = entry.path();
+            let file_name = entry.file_name().into_string().ok()?;
+            if path.is_dir() {
+                self.stack.push(path);
+                dirs.push(file_name);
+            } else {
+                files.push(file_name)
+            }
+        }
+        Some((target.into_os_string().into_string().ok()?, dirs, files))
+    }
+}
+
+#[pyclass]
+struct PyDirReader {
+    inner: DirReader
+}
+
+
+#[pymethods]
+impl PyDirReader {
+    #[new]
+    fn new(d: String) -> PyDirReader {
+        PyDirReader {
+            inner: DirReader::new(d)
+        }
+    }
+
+    fn __iter__(slf: PyRef<'_, Self>) -> PyRef<'_, Self> {
+        slf
+    }
+
+    fn __next__(mut slf: PyRefMut<'_, Self>) -> Option<(String, Vec<String>, Vec<String>)> {
+        slf.inner.next()
+    }
+}
+
 
 #[pyfunction]
 fn walk(d: &str) -> i32 {
@@ -16,7 +80,6 @@ fn walk(d: &str) -> i32 {
     res
 }
 
-use std::fs;
 
 #[pyfunction]
 fn read_dir(d: &str) -> io::Result<(String, Vec<String>, Vec<String>)> {
@@ -118,6 +181,7 @@ fn hello_cargo(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(walk, m)?)?;
     m.add_function(wrap_pyfunction!(read_dir, m)?)?;
     m.add_class::<PyClassIter>()?;
+    m.add_class::<PyDirReader>()?;
     m.add_class::<MyIter>()?;
     Ok(())
 }
